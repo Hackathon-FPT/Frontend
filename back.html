@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Segment Anything ONNX inference</title>
+    <style>
+      div {
+        width: 10px;
+        height: 10px;
+        border: 1px solid black;
+        background-color: red;
+        position: absolute;
+        border-radius: 100%;
+      }
+      /* button{
+            height: 500px;
+            width: 700px;
+        } */
+      #submitBtn {
+        display: none;
+        /* float:right; */
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Segment Anything ONNX Demo</h3>
+    1. Upload an image<br />
+    2. Click on top left and then on bottom right corners of an object that you
+    want to segment from the image<br />
+    3. See the extracted object below the image<br /><br />
+
+    <input id="uploadInput" type="file" onchange="showSubmitButton()" />
+    <br /><br />
+    <img id="sourceImage" /><br /><br />
+    <img id="destImage" /><br /><br />
+    <button id="submitSegmentBtn" onclick="submitSegment()">
+      Submit segment
+    </button>
+    <button id="submitBtn" onclick="submitImage()">generate to 3D</button>
+    <script>
+      const input = document.getElementById("uploadInput");
+      const img = document.getElementById("sourceImage");
+
+      // Upload image file and send it to backend
+      // to encode image embeddings for it using SAM encoder
+      input.addEventListener("change", async (event) => {
+        var reader = new FileReader();
+        reader.onload = async (event) => {
+          var bytes = new Uint8Array(event.target.result);
+          await fetch("/upload", {
+            method: "post",
+            headers: {
+              Accept: "application/json",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(Array.from(bytes)),
+          });
+        };
+        reader.readAsArrayBuffer(event.target.files[0]);
+        reader = new FileReader();
+        reader.onloadend = () => {
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(event.target.files[0]);
+      });
+
+      let box = [];
+      // Add top left and bottom right corners of the box
+      // and send these coordinates to the SAM decoder as a prompt
+      // to get a segmentation mask of an object, located in this
+      // box
+      img.addEventListener("click", async (event) => {
+        box.push([(event.clientX-this.offsetLeft) / this.offsetWidth, (event.clientT-this.offsetTop) / this.offsetHeight, true])
+          const response = await fetch("/decode", {
+            method: "post",
+            body: data,
+          });
+          document
+            .querySelectorAll(".point")
+            .forEach((item) => item.parentNode.removeChild(item));
+          const mask = await response.json();
+          // and draw this object below the image
+          extract_object_by_mask(box, mask);
+          box = [];
+        }
+      });
+    </script>
+    <script>
+      function showSubmitButton() {
+        const fileInput = document.getElementById("uploadInput");
+        const submitBtn = document.getElementById("submitBtn");
+
+        if (fileInput.files.length > 0) {
+          submitBtn.style.display = "inline-block"; // Hiển thị nút Submit
+          console.log("File uploaded. Submit button shown."); // Thông báo trong console
+        } else {
+          submitBtn.style.display = "none"; // Ẩn nút Submit nếu không có file
+          console.log("No file uploaded. Submit button hidden."); // Thông báo trong console
+        }
+      }
+
+      function submitImage() {
+        // Thực hiện hành động khi người dùng nhấn nút Submit
+        console.log("Submit button clicked!"); // Thông báo trong console
+        alert("Image submitted!");
+      }
+    </script>
+  </body>
+</html>

@@ -48,7 +48,13 @@ segment_btn.addEventListener('click', async () => {
     );
 })
 
-generate_btn.addEventListener('click', () => {
-    console.log('Submit button clicked!');
-    alert("Image submitted!");
+generate_btn.addEventListener('click', async () => {
+    const res = await fetch("/generate");
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.download = "model.obj";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 })
